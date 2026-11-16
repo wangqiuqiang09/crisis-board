@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>危机观察板</title>
+<style>
+* { box-sizing: border-box; }
+body { margin: 0; font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f4f5f7; color: #222; line-height: 1.6; }
+.wrap { max-width: 860px; margin: 0 auto; padding: 16px; }
+#banner { display: none; background: #fef3c7; border: 1px solid #f59e0b; color: #92400e; border-radius: 8px; padding: 10px 14px; margin-bottom: 12px; font-size: 14px; }
+header { background: #1f2937; color: #fff; border-radius: 12px; padding: 20px; display: flex; gap: 18px; align-items: center; }
+#lightDot { width: 84px; height: 84px; border-radius: 50%; flex: none; border: 4px solid rgba(255,255,255,.35); }
+#lightDot.green { background: #22c55e; box-shadow: 0 0 24px #22c55e; }
+#lightDot.yellow { background: #eab308; box-shadow: 0 0 24px #eab308; }
+#lightDot.red { background: #ef4444; box-shadow: 0 0 24px #ef4444; }
+header h1 { margin: 0 0 4px; font-size: 26px; }
+#lightLabel { font-size: 20px; font-weight: bold; }
+#dataTime { font-size: 13px; opacity: .8; margin-top: 4px; }
+#verdict { background: #fff; border-radius: 12px; padding: 16px 20px; margin-top: 12px; font-size: 16px; }
+#actionBox { background: #eff6ff; border: 1px solid #93c5fd; border-radius: 12px; padding: 14px 20px; margin-top: 12px; }
+#actionBox b { color: #1d4ed8; }
+#chips { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
+.chip { background: #fff; border-radius: 999px; padding: 4px 14px; font-size: 14px; border: 1px solid #ddd; }
+.chip .ok { color: #16a34a; font-weight: bold; }
+.chip .watch { color: #d97706; font-weight: bold; }
+.chip .danger { color: #dc2626; font-weight: bold; }
+h2.layer { margin: 28px 0 4px; font-size: 20px; }
+.layerSub { color: #666; font-size: 14px; margin-bottom: 10px; }
+.card { background: #fff; border-radius: 12px; padding: 16px 20px; margin-bottom: 12px; border-left: 6px solid #16a34a; }
+.card.watch { border-left-color: #d97706; }
+.card.danger { border-left-color: #dc2626; }
+.cardHead { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.cardHead h3 { margin: 0; font-size: 17px; }
+.badge { font-size: 13px; font-weight: bold; border-radius: 999px; padding: 2px 10px; color: #fff; white-space: nowrap; }
+.badge.ok { background: #16a34a; }
+.badge.watch { background: #d97706; }
+.badge.danger { background: #dc2626; }
+.value { font-size: 30px; font-weight: bold; margin: 6px 0 0; }
+.value .unit { font-size: 15px; font-weight: normal; color: #666; margin-left: 4px; }
+.delta { color: #666; font-size: 13px; }
+.meta { color: #888; font-size: 13px; margin-top: 2px; }
+.staleTag { color: #b45309; font-weight: bold; }
+.spark { margin-top: 8px; }
+.para { margin: 10px 0 0; font-size: 14px; }
+.para b { display: block; color: #555; font-size: 13px; }
+section.box { background: #fff; border-radius: 12px; padding: 16px 20px; margin-top: 12px; }
+.signal { display: flex; gap: 10px; padding: 10px 0; border-top: 1px solid #eee; }
+.signal:first-of-type { border-top: none; }
+.signal .mark { font-size: 20px; line-height: 1.2; flex: none; }
+.signal .mark.yes { color: #16a34a; }
+.signal .mark.no { color: #bbb; }
+.signal b { display: block; }
+.signal p { margin: 2px 0 0; font-size: 14px; color: #444; }
+.histItem { padding: 4px 0; border-top: 1px solid #eee; font-size: 14px; }
+.histItem:first-of-type { border-top: none; }
+footer { color: #888; font-size: 13px; margin: 24px 0 8px; }
+footer li { margin-bottom: 2px; }
+.refreshBtn { margin-top: 12px; background: #1f2937; color: #fff; border: none; border-radius: 8px; padding: 10px 18px; font-size: 15px; cursor: pointer; }
+</style>
+</head>
+<body>
+<div class="wrap">
+<div id="banner"></div>
+<header>
+<div id="lightDot" class="yellow"></div>
+<div>
+<h1>危机观察板</h1>
+<div id="lightLabel">黄灯 · 观察</div>
+<div id="dataTime"></div>
+</div>
+</header>
+<div id="verdict"></div>
+<div id="actionBox"></div>
+<div id="chips"></div>
+<button class="refreshBtn" id="refreshBtn" type="button">刷新最新数据</button>
+<main id="layers"></main>
+<section class="box" id="buyBox"></section>
+<section class="box" id="histBox"></section>
+<footer id="sources"></footer>
+</div>
+<script>
+var FALLBACK = {"actionText":"先收一收：不再加仓、不借钱买股；把一部分仓位换成现金或货币基金；每天看一眼第一层，第一层不变脸，就不用自己吓自己。","buySignals":[{"detail":"银行间借钱的价格已经降到 1.37%，钱在变便宜——这是央行在放水托底的样子。","id":"policy","met":true,"name":"央行在放水托底"},{"detail":"恐慌指数最近最高只到 28.18，压根没出现过极端恐慌，也就谈不上“恐慌见顶”——现在不是抄底剧本，是正常日子。","id":"vix_peak","met":false,"name":"恐慌冲到顶又回落了"},{"detail":"企业债利差现在是 3.20，离最近的高点 3.48 只收窄了 0.28，害怕还没退潮（要收窄 0.3 以上才算）。","id":"spread_narrow","met":false,"name":"怕企业倒闭的情绪在退"},{"detail":"制造业 PMI 是 49.30，还在 50 以下，也没看出连着回升的样子，工厂还没回暖。","id":"pmi_recover","met":false,"name":"工厂开始回暖"}],"buySummary":"四个信号只凑齐了 1 个，抄底的时机还没到。危机里最常见的错误，就是太早把钱打光。","coreOk":true,"fetchedAt":"2026-11-16T11:33:39.427Z","hasData":true,"light":"yellow","lightHistory":[{"date":"2026-11-16","light":"yellow"}],"readings":[{"actionText":"不用管它，每天扫一眼就行。","changePct":null,"dataDate":"2026-11-13","deltaText":"","display":"1.37%","history":[],"id":"dr007","layer":1,"name":"银行间借钱的价钱（DR007）","nowText":"现在是 1.37%，金融圈内部借钱的价格平稳，没人在抢钱。","shortName":"银行间借钱变贵","status":"ok","thresholds":"1.4%–2.1% 之间是正常日子；升到 2.5% 以上要留意；超过 3% 而且连着几天降不下来，就是“钱荒”级别的危险。","unit":"%","value":1.3723,"what":"银行和金融机构互相借钱周转时要付的利息，借一周的那种。你就把它想成“金融圈内部借钱的价格”。（还有个类似的叫 SHIBOR，看这一个就够了。）","why":"平时这个价格稳稳的。一旦它突然变贵，说明大家手里都没钱了、互相也不敢借——2013 年的“钱荒”就是先从这里出的问题。它是危机最早的报警器，所以排在第一位。"},{"actionText":"不用管它，说明大家对企业还钱这件事还放心。","changePct":null,"dataDate":"2026-11-12","deltaText":"比一个月前低了 0.05 个百分点","display":"3.20","history":[3.24,3.1,3.12,3.03,3.09,3.15,3.11,3.11,3.16,3.25,3.23,3.31,3.29,3.33,3.27,3.4,3.38,3.3,3.18,3.14,3.26,3.44,3.43,3.4,3.32,3.48,3.42,3.34,3.3,3.2],"id":"hy_spread","layer":1,"name":"企业借钱要多付的利息（美国高风险企业债）","nowText":"现在多付 3.20 个百分点，投资者对企业能不能还钱还比较放心。","shortName":"怕企业还不上钱","status":"ok","thresholds":"3.5 以下算平静；3.5–5 是担心在升温；超过 5 说明恐慌在蔓延；2008 年它一度冲到 20 以上。","unit":"个百分点","value":3.2,"what":"信用不太好的美国公司发债借钱，要比美国政府多付多少利息。多付得越多，说明投资者越怕这些公司还不上钱。","why":"公司成片倒闭、还不上钱，正是金融危机最核心的剧情。这个数字放大，说明市场已经开始认真担心这件事了——它比股市跌更能说明问题的性质。"},{"actionText":"正常，不用理会。","changePct":null,"dataDate":"2026-11-12","deltaText":"","display":"18.70","history":[15.31,15.52,15.01,15.08,15.41,14.84,15.21,15.27,16.87,16.46,19.99,18.44,17.31,16.68,19.03,19.45,18.39,17.52,16.91,17.2,19.42,21.15,20.83,16.61,28.18,25.64,19.92,19.46,17.49,18.7],"id":"vix","layer":1,"name":"恐慌指数（VIX）","nowText":"现在是 18.70，美股投资者心态平稳，没人在抢“保险”。","shortName":"美股恐慌","status":"ok","thresholds":"20 以下：心态平稳；20–30：开始紧张；30–40：明显恐慌；40 以上：极度恐慌，历史上这种时刻往往离底部不远了。","unit":"","value":18.7,"what":"美国股市的“心跳仪”：用期权价格算出来的市场紧张程度。数字越大，投资者越害怕，越愿意花大价钱买“保险”。","why":"它反应最快，股市一暴跌它就冲高。但反过来，它冲得特别高的时候，恐慌往往也快到头了——所以它既是警报器，也是后面看抄底时机的温度计。"},{"actionText":"全球资金都很紧，仓位宜轻不宜重，多留现金。","changePct":null,"dataDate":"2026-11-12","deltaText":"比一个月前低了 0.09 个百分点","display":"5.10%","history":[5.29,5.24,5.28,5.31,5.27,5.28,5.22,5.24,5.21,5.19,5.1,5.09,5.15,5.12,5.13,4.96,5,5,4.99,5.05,4.98,4.94,4.91,4.95,4.9,4.84,4.86,4.88,4.98,5.1],"id":"us10y","layer":1,"name":"美国十年国债利息","nowText":"现在是 5.10%，已经站上 5%：全球资金都很紧，这是最近市场难受的重要原因。","shortName":"全球钱的价格在涨","status":"danger","thresholds":"4.5% 以下相对温和；4.5%–5% 偏紧，要留意；站上 5% 而且还在涨，全球资产的压力都很大。","unit":"%","value":5.1,"what":"美国政府借钱十年要付的利息。它是全世界最重要的一个利率，全球的钱贵不贵都看它脸色。","why":"它快速往上冲，等于全球的钱一起变贵：房贷、企业借钱、股票估值全都会被往下压。很多次市场大跌，背后都有它冲太快的影子。"},{"actionText":"不用处理，看个大方向就行。","changePct":null,"dataDate":"2026-11-13","deltaText":"","display":"+0.27","history":[0.46,0.45,0.47,0.48,0.51,0.47,0.44,0.42,0.37,0.33,0.35,0.38,0.33,0.32,0.31,0.31,0.32,0.29,0.38,0.37,0.38,0.32,0.34,0.32,0.38,0.35,0.32,0.25,0.24,0.27],"id":"curve","layer":1,"name":"美债长短利息差（10 年减 2 年）","nowText":"现在是 +0.27，长短利息的关系正常，没有出现衰退前常见的“倒挂”。","shortName":"衰退预警","status":"ok","thresholds":"0 以上正常；贴近 0 要留意；掉到 0 以下并且待得越久，未来一两年衰退的概率越高。","unit":"个百分点","value":0.27,"what":"借十年的利息减去借两年的利息。正常时借得越久利息越高，这个差是正的；如果变成负数，叫“倒挂”——借两年的反而比借十年还贵。","why":"过去几十年，美国每次经济衰退之前，这个差都先倒挂过。它不是危机的扳机，更像提前一两年的天气预报：不准到月份，但值得记在心里。"},{"actionText":"正常，不用处理。","changePct":-0.38943017860073065,"dataDate":"2026-11-06","deltaText":"最近一个月人民币升值了 0.39%","display":"6.68","history":[6.711,6.7103,6.703,6.7045,6.7038,6.7038,6.7038,6.7038,6.7038,6.7021,6.692,6.6937,6.6926,6.6909,6.6861,6.6806,6.6779,6.6758,6.6745,6.6702,6.67,6.666,6.6662,6.6604,6.6538,6.648,6.6701,6.6731,6.668,6.676],"id":"usdcny","layer":1,"name":"美元兑人民币","nowText":"现在是 6.68，最近一个月人民币基本稳得住，没有大笔钱出逃的迹象。","shortName":"人民币在快速贬值","status":"ok","thresholds":"慢慢小幅波动是正常的；要警惕的是速度：一个月跌超过 2%，或者跌破 7.3 这类整数关口还不回头。","unit":"元","value":6.676,"what":"1 美元能换多少人民币。数字变大 = 人民币在贬值；变小 = 人民币在升值。","why":"危机时期全球的钱会往美元跑，人民币会承压。如果人民币短时间跌得又快又急，说明有大笔钱在离开中国市场，会连带 A 股一起跌。"},{"actionText":"银行系统没出事，正常看待。","changePct":0.7479224376731192,"dataDate":"2026-11-16","deltaText":"最近一周涨了 0.75%","display":"72.74","history":[70.39,70.07,68.89,69.59,69.01,69.56,69.06,68.54,69.75,69.81,69.26,70.62,70.62,72.41,72.46,72.73,72.58,72.11,72.86,72.01,73.73,72.88,74.13,72.31,72.2,73.45,73.09,72.95,72.52,72.74],"id":"kre","layer":1,"name":"美国中小银行股（KRE）","nowText":"最近一周涨了 0.75%，银行股没有出现集体出逃。","shortName":"美国中小银行在暴跌","status":"ok","thresholds":"看一周的涨跌：跌 5% 以内算正常波动；一周跌 5%–10% 要警觉；一周跌超 10%，是银行系统出事的明确信号。","unit":"美元","value":72.74,"what":"一篮子美国地方中小银行的股票打包在一起的价格。2023 年硅谷银行倒闭那阵，暴跌的就是这一篮子。","why":"银行是金融系统的水管。真危机里最先漏水的往往是中小银行——它们股价集体大跌，就是水管在爆裂的声音，比新闻早得多。"},{"actionText":"日子在变难，别对企业利润太乐观，仓位别加太满。","changePct":null,"dataDate":"2026年10月","deltaText":"刚刚掉到 50 以下","display":"49.30","history":[50,50.3,49.2,49.8,50.1,49.3],"id":"pmi_mfg","layer":2,"name":"工厂景气度（制造业 PMI）","nowText":"2026年10月是 49.30，掉到了 50 以下：工厂在收缩，订单在变少。","shortName":"工厂在变冷","status":"watch","thresholds":"50 以上：工厂在扩张；49–50：临界，正在变冷；48 以下还连着两个月：经济明显在下滑。","unit":"","value":49.3,"what":"每月问几百家工厂的采购经理：订单多了还是少了、生产忙不忙。50 是分界线：以上是扩张，以下是收缩。","why":"它是最早发布的经济体温计，比 GDP 早一两个月。连续掉到 50 以下，说明工厂在真实地变冷，企业的利润和就业都会跟着变差——它决定的是坏日子有多深、多久。"},{"actionText":"消费和就业会跟着弱，别对靠消费的公司期望太高。","changePct":null,"dataDate":"2026年10月","deltaText":"","display":"49.70","history":[50.1,50.2,49,49,50.2,49.7],"id":"pmi_nonmfg","layer":2,"name":"服务业景气度（非制造业 PMI）","nowText":"2026年10月是 49.70，掉到了 50 以下：服务业在变冷，大家的收入和消费都会跟着受影响。","shortName":"服务业在变冷","status":"watch","thresholds":"50 以上：服务业在扩张；49–50：临界；48 以下：服务业在明显收缩。","unit":"","value":49.7,"what":"同样的问卷，问的是餐饮、物流、建筑、金融这些服务业和建筑业。50 以上扩张，以下收缩。","why":"服务业占中国经济一半以上，它的冷暖直接决定就业和大家的收入预期。它和工厂一起冷，说明冷的是整个经济，不是一两个行业。"},{"actionText":"需求偏冷，对经济多留个心眼，仓位别太激进。","changePct":null,"dataDate":"2026年10月","deltaText":"","display":"+0.70%","history":[],"id":"cpi","layer":2,"name":"物价涨幅（CPI）","nowText":"2026年10月物价只涨了 0.70%，离 0 不远了：东西卖不动，需求偏冷。","shortName":"物价偏冷、需求弱","status":"watch","thresholds":"涨 1%–3% 健康；0–1% 偏冷，要留意；低于 0（物价在往下跌）是需求很差的信号；高于 4% 则是通胀的麻烦。","unit":"%","value":0.7,"what":"老百姓买东西的价格比去年同期贵了多少。它太低甚至转负，说明大家都不花钱了；太高，说明通胀压不住。","why":"危机前夜常见的不是涨价，而是“通缩”那一面：物价连着跌、企业不敢涨价、大家越等越不买东西。CPI 掉到 0 附近甚至负数，是需求冷掉的实锤。"},{"actionText":"正常波动，不用处理。","changePct":-0.87,"dataDate":"今日收盘","deltaText":"今天跌了 0.87%","display":"3602.57","history":[],"id":"sh_index","layer":3,"name":"上证指数","nowText":"今天跌了 0.87%，属于正常波动的范围。","shortName":"A 股在恐慌式下跌","status":"ok","thresholds":"一天跌 2% 以内算正常；一天跌 3.5% 以上要警觉；一天跌 5% 以上或者出现大面积跌停，是恐慌在蔓延。","unit":"点","value":3602.5698,"what":"上海股市几千家公司打包成的总分。看的不是点位本身，而是跌的速度和样子。","why":"慢慢阴跌是熊市；几天之内直线跳水、想卖都卖不掉，才是危机式的跌法。它跌得越急，说明越多人不在乎价格、只想先把现金拿回来。"},{"actionText":"市场流动性正常，不用处理。","changePct":null,"dataDate":"今日","deltaText":"","display":"14,845","history":[],"id":"turnover","layer":3,"name":"两市成交额（沪深合计）","nowText":"今天成交 14,845 亿元，买卖的人都还在，市场没被冻住。","shortName":"股市快被冻住了","status":"ok","thresholds":"1 万亿上下是现在的常态；跌破 7000 亿说明市场快冻住了；放量大跌（成交冲高同时指数大跌）是恐慌抛售。","unit":"亿元","value":14845,"what":"沪深两个市场一天买卖股票的总金额，代表市场里还有多少人在交易、还有多少钱在流动。","why":"危机里成交额会先放大（恐慌抛售）再迅速枯竭（没人敢买）。长期缩到很低，说明市场被冻住了，想卖都找不到接盘的人。"},{"actionText":"避险情绪正常，不用处理。","changePct":-6.952697573361954,"dataDate":"2026-11-16","deltaText":"最近一个月跌了 6.95%","display":"355.45","history":[379.55,382.27,375.88,378.62,384.58,382.15,381.67,375.99,382.71,382.01,379.69,377.65,378.95,369,366.61,367.82,372.28,373.51,368.57,355.78,361.65,359.26,372.49,375.49,372.52,379.53,369.36,365.17,354.89,355.45],"id":"gld","layer":3,"name":"黄金（看避险的钱去哪）","nowText":"最近一个月金价跌了 6.95%，避险的钱还没大规模进场。","shortName":"避险资金在涌入黄金","status":"ok","thresholds":"看一个月涨幅：涨 5% 以内是正常波动；一个月涨超 8%，说明避险情绪明显升温；涨超 12% 是恐慌在找出口。","unit":"美元","value":355.45,"what":"全球最大的黄金基金的价格，跟着金价走。大家害怕的时候，会买黄金躲起来。","why":"看它不是为了炒金，是看“害怕的钱”去了哪：如果黄金短时间大涨，说明全球资金在找地方躲，愿意承担风险的钱在变少。"},{"actionText":"正常，不用处理。","changePct":1.7241379310344829,"dataDate":"2026-11-16","deltaText":"最近一个月美元走强了 1.72%","display":"29.50","history":[28.89,28.99,28.9,29.04,28.98,29.02,29.13,29.02,29.12,29,28.92,29,28.9,28.92,28.9,28.96,29.01,29.12,29.06,29.04,29,28.96,29.01,28.9,28.92,29.13,28.97,29.15,29.35,29.42],"id":"uup","layer":3,"name":"美元强弱（美元指数基金）","nowText":"最近一个月美元走强了 1.72%，没有出现全球资金大逃亡的那种走法。","shortName":"美元在快速变强","status":"ok","thresholds":"一个月涨 2% 以内正常；涨超 3% 说明全球资金在回流美国，其他市场要小心；涨超 5% 是危机模式。","unit":"美元","value":29.5,"what":"打包追踪美元强弱的基金，美元涨它就涨。","why":"全球一出事，钱就往美元跑，美元变强；新兴市场（包括 A 股）的钱会被抽走。美元快速变强，是全球钱变紧的同步信号，和第一层互相印证。"}],"sourceNotes":["美国企业债利差（FRED）：已更新","恐慌指数 VIX（FRED）：已更新","美债利率与长短利差（FRED）：已更新","美元兑人民币（FRED）：已更新","中国工厂/服务业景气度（东方财富·国家统计局）：已更新","中国物价 CPI（东方财富·国家统计局）：已更新","上证/深证指数与成交额（新浪财经）：已更新","美国银行股/黄金/美元基金行情：已更新","银行间利率 DR007（公开报道检索）：已更新"],"verdict":"有几处在变坏：全球钱的价格在涨、工厂在变冷、服务业在变冷、物价偏冷、需求弱。但最关键的两条——银行间闹钱荒、企业违约恐慌——还没出现，所以现在是“黄灯观察”，还不是危机。"};
+var LAYER_NAMES = { 1: ['第一层 · 流动性与信用', '钱紧不紧，是危机最早的报警器'], 2: ['第二层 · 经济基本面', '经济冷不冷，决定坏日子有多深、多长'], 3: ['第三层 · 市场资金与情绪', '市场慌不慌，看钱在往哪跑'] };
+var LIGHT_TEXT = { green: '绿灯 · 安全', yellow: '黄灯 · 观察', red: '红灯 · 危险' };
+var STATUS_TEXT = { ok: '正常', watch: '留意', danger: '危险' };
+function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function fmtTime(iso) { try { var d = new Date(iso); return d.toLocaleString('zh-CN', { timeZone: 'Asia/Shanghai', hour12: false }); } catch (e) { return iso; } }
+function sparkline(hist) {
+  if (!hist || hist.length < 2) return '';
+  var w = 220, h = 36, min = Math.min.apply(null, hist), max = Math.max.apply(null, hist);
+  if (max === min) { max = min + 1; }
+  var pts = [];
+  for (var i = 0; i < hist.length; i++) {
+    var x = (i / (hist.length - 1) * (w - 4) + 2).toFixed(1);
+    var y = (h - 4 - (hist[i] - min) / (max - min) * (h - 8)).toFixed(1);
+    pts.push(x + ',' + y);
+  }
+  return '<div class="spark"><svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '"><polyline points="' + pts.join(' ') + '" fill="none" stroke="#64748b" stroke-width="1.5"/></svg></div>';
+}
+function render(board, isFallback) {
+  var dot = document.getElementById('lightDot');
+  dot.className = board.light || 'yellow';
+  document.getElementById('lightLabel').textContent = LIGHT_TEXT[board.light] || board.light;
+  var timeText = '数据时间：' + fmtTime(board.fetchedAt) + '（北京时间）';
+  if (isFallback) { timeText += ' · 快照数据'; }
+  document.getElementById('dataTime').textContent = timeText;
+  var banner = document.getElementById('banner');
+  if (isFallback) {
+    banner.style.display = 'block';
+    banner.textContent = '实时数据暂时拉取失败，以下显示 ' + fmtTime(board.fetchedAt) + ' 的快照数据（已标注时间），不代表最新情况。';
+  } else {
+    banner.style.display = 'none';
+  }
+  document.getElementById('verdict').textContent = board.verdict || '';
+  document.getElementById('actionBox').innerHTML = '<b>现在该做什么：</b>' + esc(board.actionText || '');
+  var counts = { ok: 0, watch: 0, danger: 0 };
+  (board.readings || []).forEach(function (r) { if (counts[r.status] != null) counts[r.status]++; });
+  document.getElementById('chips').innerHTML =
+    '<span class="chip"><span class="ok">● 正常 ' + counts.ok + '</span></span>' +
+    '<span class="chip"><span class="watch">● 留意 ' + counts.watch + '</span></span>' +
+    '<span class="chip"><span class="danger">● 危险 ' + counts.danger + '</span></span>';
+  var layersHtml = '';
+  [1, 2, 3].forEach(function (ln) {
+    layersHtml += '<h2 class="layer">' + esc(LAYER_NAMES[ln][0]) + '</h2><div class="layerSub">' + esc(LAYER_NAMES[ln][1]) + '</div>';
+    (board.readings || []).forEach(function (r) {
+      if (r.layer !== ln) return;
+      var stale = r.stale ? ' <span class="staleTag">· 暂无新数据</span>' : '';
+      layersHtml += '<div class="card ' + esc(r.status) + '">' +
+        '<div class="cardHead"><h3>' + esc(r.name) + '</h3><span class="badge ' + esc(r.status) + '">' + esc(STATUS_TEXT[r.status] || r.status) + '</span></div>' +
+        '<div class="value">' + esc(r.display) + '<span class="unit">' + esc(r.unit || '') + '</span></div>' +
+        (r.deltaText ? '<div class="delta">' + esc(r.deltaText) + '</div>' : '') +
+        sparkline(r.history) +
+        '<div class="meta">数据日期：' + esc(r.dataDate) + stale + '</div>' +
+        '<p class="para"><b>这是什么</b>' + esc(r.what) + '</p>' +
+        '<p class="para"><b>为什么重要</b>' + esc(r.why) + '</p>' +
+        '<p class="para"><b>怎么看这个数</b>' + esc(r.thresholds) + '</p>' +
+        '<p class="para"><b>现在怎么样</b>' + esc(r.nowText) + '</p>' +
+        '<p class="para"><b>看到它该做什么</b>' + esc(r.actionText) + '</p>' +
+        '</div>';
+    });
+  });
+  document.getElementById('layers').innerHTML = layersHtml;
+  var buyHtml = '<h2 style="margin:0 0 6px;font-size:18px;">抄底信号（4 个）</h2>';
+  (board.buySignals || []).forEach(function (s) {
+    buyHtml += '<div class="signal"><span class="mark ' + (s.met ? 'yes' : 'no') + '">' + (s.met ? '✓' : '✗') + '</span><div><b>' + esc(s.name) + (s.met ? ' · 已出现' : ' · 未出现') + '</b><p>' + esc(s.detail) + '</p></div></div>';
+  });
+  buyHtml += '<p style="margin:10px 0 0;font-size:15px;">' + esc(board.buySummary || '') + '</p>';
+  document.getElementById('buyBox').innerHTML = buyHtml;
+  var histHtml = '<h2 style="margin:0 0 6px;font-size:18px;">信号灯历史</h2>';
+  (board.lightHistory || []).forEach(function (h) {
+    histHtml += '<div class="histItem">' + esc(h.date) + ' —— ' + esc(LIGHT_TEXT[h.light] || h.light) + '</div>';
+  });
+  document.getElementById('histBox').innerHTML = histHtml;
+  var srcHtml = '<p>数据来源：</p><ul>';
+  (board.sourceNotes || []).forEach(function (n) { srcHtml += '<li>' + esc(n) + '</li>'; });
+  srcHtml += '</ul><p>数据来自公开来源（FRED、东方财富、新浪财经等），仅供参考，不构成投资建议。页面不含任何持仓内容。</p>';
+  document.getElementById('sources').innerHTML = srcHtml;
+}
+function load() {
+  render(FALLBACK, true);
+  fetch('/api/board', { cache: 'no-store' }).then(function (resp) {
+    if (!resp.ok) throw new Error('http ' + resp.status);
+    return resp.json();
+  }).then(function (data) {
+    if (data && data.readings && data.readings.length) { render(data, false); }
+  }).catch(function () { render(FALLBACK, true); });
+}
+document.getElementById('refreshBtn').addEventListener('click', function () {
+  fetch('/api/board?fresh=1', { cache: 'no-store' }).then(function (resp) {
+    if (!resp.ok) throw new Error('http ' + resp.status);
+    return resp.json();
+  }).then(function (data) {
+    if (data && data.readings && data.readings.length) { render(data, false); }
+  }).catch(function () { render(FALLBACK, true); });
+});
+load();
+</script>
+</body>
+</html>
