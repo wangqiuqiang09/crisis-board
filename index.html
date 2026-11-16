@@ -57,6 +57,23 @@ section.box { background: #fff; border-radius: 12px; padding: 16px 20px; margin-
 footer { color: #888; font-size: 13px; margin: 24px 0 8px; }
 footer li { margin-bottom: 2px; }
 .refreshBtn { margin-top: 12px; background: #1f2937; color: #fff; border: none; border-radius: 8px; padding: 10px 18px; font-size: 15px; cursor: pointer; }
+.detailToggle { margin-top: 10px; background: #f1f5f9; border: 1px solid #e2e8f0; color: #334155; border-radius: 8px; padding: 7px 12px; font-size: 14px; cursor: pointer; }
+.detailBody { display: none; }
+.detailBody.open { display: block; }
+.spark svg { width: 100%; max-width: 260px; height: auto; display: block; }
+@media (max-width: 560px) {
+  .wrap { padding: 12px; }
+  header { padding: 16px; gap: 14px; }
+  #lightDot { width: 56px; height: 56px; }
+  header h1 { font-size: 22px; }
+  #lightLabel { font-size: 17px; }
+  #verdict, #actionBox { font-size: 15px; padding: 14px 16px; }
+  .card { padding: 14px 16px; }
+  .cardHead h3 { font-size: 16px; }
+  .value { font-size: 26px; }
+  h2.layer { font-size: 18px; margin-top: 22px; }
+  .refreshBtn { width: 100%; }
+}
 </style>
 </head>
 <body>
@@ -98,6 +115,7 @@ function sparkline(hist) {
   }
   return '<div class="spark"><svg width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '"><polyline points="' + pts.join(' ') + '" fill="none" stroke="#64748b" stroke-width="1.5"/></svg></div>';
 }
+function toggleDetail(btn) { var body = btn.nextElementSibling; var open = body.classList.toggle('open'); btn.textContent = open ? '收起解读 ▴' : '展开解读 ▾'; }
 function render(board, isFallback) {
   var dot = document.getElementById('lightDot');
   dot.className = board.light || 'yellow';
@@ -132,11 +150,14 @@ function render(board, isFallback) {
         (r.deltaText ? '<div class="delta">' + esc(r.deltaText) + '</div>' : '') +
         sparkline(r.history) +
         '<div class="meta">数据日期：' + esc(r.dataDate) + stale + '</div>' +
+        '<p class="para"><b>现在怎么样</b>' + esc(r.nowText) + '</p>' +
+        '<button class="detailToggle" type="button" onclick="toggleDetail(this)">展开解读 ▾</button>' +
+        '<div class="detailBody">' +
         '<p class="para"><b>这是什么</b>' + esc(r.what) + '</p>' +
         '<p class="para"><b>为什么重要</b>' + esc(r.why) + '</p>' +
         '<p class="para"><b>怎么看这个数</b>' + esc(r.thresholds) + '</p>' +
-        '<p class="para"><b>现在怎么样</b>' + esc(r.nowText) + '</p>' +
         '<p class="para"><b>看到它该做什么</b>' + esc(r.actionText) + '</p>' +
+        '</div>' +
         '</div>';
     });
   });
